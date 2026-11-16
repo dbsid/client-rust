@@ -720,8 +720,8 @@ impl ::prost::Name for KvPair {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DuplicateDetectResponse {
-    #[prost(message, optional, tag = "1")]
-    pub region_error: ::core::option::Option<super::errorpb::Error>,
+    #[prost(message, optional, boxed, tag = "1")]
+    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
     #[prost(message, optional, tag = "2")]
     pub key_error: ::core::option::Option<Error>,
     /// The these keys will be in asc order (but commit time is in desc order),
