@@ -295,6 +295,10 @@ impl PessimisticLockDispatchTiming {
 
     fn prepare(&self, request: &mut kvrpcpb::PessimisticLockRequest) -> Result<()> {
         request.lock_ttl = self.start_instant.elapsed().as_millis() as u64 + managed_lock_ttl();
+        // Go `actionPessimisticLock.handleSingleBatch`.
+        if crate::util::eval_failpoint("shortPessimisticLockTTL", crate::util::FailpointValue).ok().flatten().is_some() {
+            request.lock_ttl = 1;
+        }
         if let Some(wait_time) = self.wait_time {
             request.wait_timeout = calculate_pessimistic_lock_wait_time(
                 self.killed.as_ref(),
@@ -1201,6 +1205,9 @@ pub struct Transaction<PdC: PdClient = PdRpcClient> {
     /// client-go `ctx.Value(util.ExecDetailsKey)` for this transaction's
     /// operations when the caller does not supply it in the trace context.
     exec_details: Option<Arc<crate::util::ExecDetails>>,
+    /// The statement's caller ctx (client-go's `ctx` argument, with its RPC
+    /// interceptor), the base of every operation's statement ctx.
+    caller_context: Option<crate::trace::TraceContext>,
     /// Snapshot-only callers may replace this with source replica-read
     /// settings; ordinary transactions retain direct leader reads.
     replica_read_config: ReplicaReadConfig,
@@ -1253,6 +1260,8 @@ pub struct Transaction<PdC: PdClient = PdRpcClient> {
     is_heartbeat_started: Arc<atomic::AtomicBool>,
     heartbeat_generation: Arc<atomic::AtomicU64>,
     committer_initialized: bool,
+    /// client-go `ctx.Value(util.SessionID)` of the current call.
+    context_session_id: u64,
     pessimistic_lock_count: usize,
     /// The first shared-lock upgrade error aborts further locking and commit
     /// attempts, while rollback remains available to release other locks.
@@ -1359,6 +1368,7 @@ impl<PdC: PdClient> Transaction<PdC> {
             resource_control: None,
             ru_details: None,
             exec_details: None,
+            caller_context: None,
             replica_read_config: ReplicaReadConfig::default(),
             replica_read_adjuster: None,
             sample_step: 0,
@@ -1383,6 +1393,7 @@ impl<PdC: PdClient> Transaction<PdC> {
             is_heartbeat_started: Arc::new(atomic::AtomicBool::new(false)),
             heartbeat_generation: Arc::new(atomic::AtomicU64::new(0)),
             committer_initialized: pipelined,
+            context_session_id: 0,
             pessimistic_lock_count: 0,
             shared_lock_abort: None,
             prewritten: false,
@@ -2044,21 +2055,44 @@ impl<PdC: PdClient> Transaction<PdC> {
         self.exec_details = Some(exec_details);
     }
 
-    /// The statement ctx for one operation: the caller's trace context with
-    /// [`Self::set_exec_details`]' value as client-go's `ExecDetailsKey`.
-    /// `None` once the operation already runs under it.
+    /// The ctx the statement's calls are made with (client-go passes it to
+    /// `Get`, `BatchGet`, `LockKeys` and `Commit`), interceptor included.
+    pub fn set_caller_context(&mut self, context: crate::trace::TraceContext) {
+        self.caller_context = Some(context);
+    }
+
+    /// The statement ctx for one operation: the active trace context with
+    /// the caller ctx's RPC interceptor and [`Self::set_exec_details`]' value
+    /// as client-go's `ExecDetailsKey`. `None` once the operation already
+    /// runs under both.
     fn statement_trace_context(&self) -> Option<crate::trace::TraceContext> {
-        let details = self.exec_details.as_ref()?;
         let active = crate::trace::current_trace_context();
-        if crate::util::exec_details_from_context(&active)
-            .is_some_and(|active| Arc::ptr_eq(active, details))
-        {
+        let details = self.exec_details.as_ref().filter(|details| {
+            !crate::util::exec_details_from_context(&active)
+                .is_some_and(|active| Arc::ptr_eq(active, details))
+        });
+        // The active ctx keeps what the caller scoped around this call (its
+        // commit and lock-keys detail slots); the statement's caller ctx adds
+        // its RPC interceptor, which client-go's `ctx` carries throughout.
+        let interceptor = self
+            .caller_context
+            .as_ref()
+            .and_then(crate::interceptor::get_rpc_interceptor_from_ctx)
+            .filter(|chain| {
+                !crate::interceptor::get_rpc_interceptor_from_ctx(&active)
+                    .is_some_and(|active| active.contains_all(chain))
+            });
+        if details.is_none() && interceptor.is_none() {
             return None;
         }
-        Some(crate::util::context_with_exec_details(
-            &active,
-            Arc::clone(details),
-        ))
+        let mut context = active;
+        if let Some(chain) = interceptor {
+            context = crate::interceptor::with_rpc_interceptor(&context, Arc::new(chain));
+        }
+        if let Some(details) = details {
+            context = crate::util::context_with_exec_details(&context, Arc::clone(details));
+        }
+        Some(context)
     }
 
     /// client-go `KVSnapshot.Get`/`BatchGet`/`newScanner`'s ctx: the
@@ -3780,7 +3814,11 @@ impl<PdC: PdClient> Transaction<PdC> {
         // lock attempt reaches this point. In particular, it remains
         // initialized when a first shared lock is rejected for lacking an
         // exclusive primary, which controls whether a later SetSessionID call
-        // takes effect.
+        // takes effect. `newTwoPhaseCommitter(txn, sessionID)` takes the
+        // ctx's `util.SessionID`.
+        if !self.committer_initialized {
+            self.commit_settings.session_id = self.context_session_id;
+        }
         self.committer_initialized = true;
 
         if context.in_share_mode && self.buffer.get_primary_key().is_none() {
@@ -4181,6 +4219,11 @@ impl<PdC: PdClient> Transaction<PdC> {
     /// The body of client-go `KVTxn.Commit` inside its `tikvTxn.Commit`
     /// span (Go's `trace.StartRegion(ctx, "CommitTxn")` region).
     async fn commit_txn(&mut self) -> Result<Option<Timestamp>> {
+        // client-go `KVTxn.Commit`: a transaction without a committer yet
+        // creates one with the ctx's `util.SessionID`.
+        if !self.committer_initialized {
+            self.commit_settings.session_id = self.context_session_id;
+        }
         if self.get_status() == TransactionStatus::Active {
             if let Some(error) = self.shared_lock_abort_error() {
                 return Err(error);
@@ -4267,7 +4310,7 @@ impl<PdC: PdClient> Transaction<PdC> {
             self.buffer.to_proto_mutations()
         };
         let skip_assertion_check_from_lock =
-            crate::util::eval_failpoint("assertionSkipCheckFromLock", |_| ())
+            crate::util::eval_failpoint_async("assertionSkipCheckFromLock", |_| ()).await
                 .ok()
                 .flatten()
                 .is_some();
@@ -4570,6 +4613,15 @@ impl<PdC: PdClient> Transaction<PdC> {
             }
         }
 
+        // Go `KVTxn.Rollback`: this test hook leaves only pessimistic locks behind.
+        if matches!(self.options.kind, TransactionKind::Pessimistic(_)) && !prewritten {
+            if let Some(value) = crate::util::eval_failpoint_async("onRollback", crate::util::FailpointValue).await.ok().flatten() {
+                if value.as_string() == Some("skipRollbackPessimisticLock") {
+                    self.set_status(TransactionStatus::Rolledback);
+                    return Ok(());
+                }
+            }
+        }
         if self.is_pipelined() {
             self.configure_pipelined_memdb();
             self.pipelined_cancellation.cancel();
@@ -4723,6 +4775,12 @@ impl<PdC: PdClient> Transaction<PdC> {
 
     pub fn set_transaction_source(&mut self, source: u64) {
         self.commit_settings.transaction_source = source;
+    }
+
+    /// client-go `ctx.Value(util.SessionID)` of the calls that follow, 0
+    /// when the ctx has none; the committer takes it when it is created.
+    pub fn set_context_session_id(&mut self, session_id: u64) {
+        self.context_session_id = session_id;
     }
 
     pub fn set_session_id(&mut self, session_id: u64) {
@@ -5755,6 +5813,23 @@ impl<PdC: PdClient> Transaction<PdC> {
             return Ok(vec![]);
         }
 
+        // Go `twoPhaseCommitter.pessimisticLockMutations`.
+        if self.commit_settings.session_id > 0 {
+            if let Some(value) =
+                crate::util::eval_failpoint_async("beforePessimisticLock", crate::util::FailpointValue).await.ok().flatten()
+            {
+                if let Some(actions) = value.as_string() {
+                    for action in actions.split(',') {
+                        match action {
+                            "delay" => tokio::time::sleep(Duration::from_nanos(rand::random::<u64>() % 5_000_000_000)).await,
+                            "fail" => return Err(Error::StringError("injected failure at pessimistic lock".into())),
+                            _ => {},
+                        }
+                    }
+                }
+            }
+        }
+
         // client-go's pessimistic-lock lowering derives Assertion_NotExist
         // from the authoritative MemDB, including when the caller supplied a
         // plain key. This is what makes SetPresumeKeyNotExists reject an
@@ -5806,6 +5881,11 @@ impl<PdC: PdClient> Transaction<PdC> {
                 max_execution_deadline: None,
             },
         };
+        // Go `actionPessimisticLock.handleSingleBatch`: injected conflict before sending.
+        if crate::util::eval_failpoint_async("PessimisticLockErrWriteConflict", crate::util::FailpointValue).await.ok().flatten().is_some() {
+            tokio::time::sleep(Duration::from_millis(300)).await;
+            return Err(crate::error::new_write_conflict(kvrpcpb::WriteConflict::default()).into());
+        }
         let lock_ttl = self.start_instant.elapsed().as_millis() as u64 + managed_lock_ttl();
         let mut request = new_pessimistic_lock_request(
             locks.clone().into_iter(),
@@ -6209,6 +6289,14 @@ impl<PdC: PdClient> Transaction<PdC> {
             return Ok(());
         }
 
+        // Go `KVTxn.asyncPessimisticRollback`.
+        if let Some(value) = crate::util::eval_failpoint_async("beforeAsyncPessimisticRollback", crate::util::FailpointValue).await.ok().flatten() {
+            match value.as_string() {
+                Some("skip") => return Ok(()),
+                Some("delay") => tokio::time::sleep(Duration::from_millis(rand::random::<u64>() % 2000)).await,
+                _ => {},
+            }
+        }
         let mut req = new_pessimistic_rollback_request(
             keys.clone().into_iter(),
             start_version.clone(),
@@ -6308,6 +6396,10 @@ impl<PdC: PdClient> Transaction<PdC> {
         &self,
         lock_context: Option<&LockContext>,
     ) -> Option<AutoHeartbeatStarter> {
+        // Go `ttlManager.run`.
+        if crate::util::eval_failpoint("doNotKeepAlive", crate::util::FailpointValue).ok().flatten().is_some() {
+            return None;
+        }
         if self.is_pipelined() || !self.options.heartbeat_option.is_auto_heartbeat() {
             return None;
         }
@@ -7544,6 +7636,10 @@ impl<PdC: PdClient> Committer<PdC> {
         if self.options.async_commit || self.options.try_one_pc {
             self.calculate_max_commit_ts()?;
         }
+        // Go `twoPhaseCommitter.execute`: after calculateMaxCommitTS, before prewrite starts.
+        if self.settings.session_id > 0 {
+            crate::util::eval_failpoint_async("beforePrewrite", |_| ()).await.ok();
+        }
         self.pre_split_large_transaction_regions().await;
         let binlog = self.settings.binlog.clone();
         let primary = self.primary_key.as_ref().unwrap().clone();
@@ -7637,7 +7733,7 @@ impl<PdC: PdClient> Committer<PdC> {
             pre();
         }
         tokio::spawn(async move {
-            let skip_async_commit = crate::util::eval_failpoint("asyncCommitDoNothing", |_| ())
+            let skip_async_commit = crate::util::eval_failpoint_async("asyncCommitDoNothing", |_| ()).await
                 .ok()
                 .flatten()
                 .is_some();
@@ -9405,6 +9501,10 @@ impl<PdC: PdClient> Committer<PdC> {
     }
 
     fn check_schema_valid(&self, check_timestamp: u64) -> Result<()> {
+        // Go `twoPhaseCommitter.checkSchemaValid`.
+        if crate::util::eval_failpoint("failCheckSchemaValid", crate::util::FailpointValue).ok().flatten().is_some() {
+            return Err(Error::StringError("mock check schema valid failure".to_owned()));
+        }
         let (Some(checker), Some(schema_version)) = (
             &self.settings.schema_lease_checker,
             &self.settings.schema_version,
@@ -9524,6 +9624,10 @@ impl<PdC: PdClient> Committer<PdC> {
                 .saturating_add(1) as u64;
             lock_ttl = lock_ttl.max(safe_ttl);
         }
+        // Go `actionPrewrite.handleSingleBatch` applies this after the async-commit TTL bound.
+        if self.settings.session_id > 0 && crate::util::eval_failpoint_async("twoPCShortLockTTL", crate::util::FailpointValue).await.ok().flatten().is_some() {
+            lock_ttl = 1;
+        }
         let pessimistic_for_update_ts = match &self.options.kind {
             TransactionKind::Pessimistic(for_update_ts)
                 if for_update_ts.version() == 0 && !self.constraint_check_keys.is_empty() =>
@@ -9552,7 +9656,7 @@ impl<PdC: PdClient> Committer<PdC> {
         request.use_async_commit = self.options.async_commit;
         request.try_one_pc = self.options.try_one_pc;
         let skip_assertion_check_from_prewrite =
-            crate::util::eval_failpoint("assertionSkipCheckFromPrewrite", |_| ())
+            crate::util::eval_failpoint_async("assertionSkipCheckFromPrewrite", |_| ()).await
                 .ok()
                 .flatten()
                 .is_some();
@@ -9850,6 +9954,22 @@ impl<PdC: PdClient> Committer<PdC> {
         // more than one check would reject the same timestamp.
         self.check_schema_valid(commit_version.version())?;
         self.validate_commit_timestamp(&commit_version)?;
+        // Go `twoPhaseCommitter.execute`'s beforeCommit test actions.
+        if self.settings.session_id > 0 {
+            if let Some(value) = crate::util::eval_failpoint_async("beforeCommit", crate::util::FailpointValue).await.ok().flatten() {
+                if let Some(actions) = value.as_string() {
+                    for action in actions.split(',') {
+                        if action == "fail" && !self.options.async_commit {
+                            return Err(Error::StringError("injected failure before commit".to_owned()));
+                        } else if action == "delay" {
+                            tokio::time::sleep(Duration::from_millis(rand::random::<u64>() % 5000)).await;
+                        } else if let Some(millis) = action.strip_prefix("delay(").and_then(|value| value.strip_suffix(')')) {
+                            tokio::time::sleep(Duration::from_millis(millis.parse().expect("Go beforeCommit delay duration"))).await;
+                        }
+                    }
+                }
+            }
+        }
         Ok(commit_version)
     }
 
@@ -10014,7 +10134,8 @@ impl<PdC: PdClient> Committer<PdC> {
             .filter(|key| region.contains(key))
             .collect();
         keys.sort();
-        let limit = crate::kv::TXN_COMMIT_BATCH_SIZE.load(atomic::Ordering::Relaxed);
+        let limit = if crate::util::eval_failpoint_async("twoPCRequestBatchSizeLimit", crate::util::FailpointValue).await.ok().flatten().is_some() { 1 }
+            else { crate::kv::TXN_COMMIT_BATCH_SIZE.load(atomic::Ordering::Relaxed) };
         let mut batch = Vec::new();
         let mut size = 0_u64;
         let mut holds_primary = false;
@@ -10235,6 +10356,17 @@ impl<PdC: PdClient> Committer<PdC> {
     }
 
     async fn commit_secondary_in_background(mut self, commit_version: Timestamp) -> Result<()> {
+        // Go `doActionOnMutations`: only ordinary 2PC secondaries use this hook.
+        if self.settings.session_id > 0 && !self.options.async_commit {
+            if let Some(value) = crate::util::eval_failpoint_async("beforeCommitSecondaries", crate::util::FailpointValue).await.ok().flatten() {
+                match value.as_string() {
+                    Some("skip") => return Ok(()),
+                    None => tokio::time::sleep(Duration::from_secs(2)).await,
+                    _ => {},
+                }
+            }
+        }
+
         let start_version = self.start_version.clone();
         let mutations_len = self.mutations.len();
         let primary_batch = std::mem::take(&mut self.primary_commit_batch);
@@ -17638,6 +17770,51 @@ mod tests {
         assert_eq!(manager.exec_log(), ["INTERCEPTOR-2"]);
         txn.rollback().await.unwrap();
         manager.reset();
+    }
+
+    /// client-go's `ctx` carries the caller's interceptor into every read,
+    /// whether or not the statement charges `ExecDetails`; one already in the
+    /// active ctx is not linked twice.
+    #[tokio::test]
+    async fn a_caller_context_interceptor_wraps_reads_without_exec_details() {
+        let manager = crate::MockInterceptorManager::new();
+        let pd_client = Arc::new(MockPdClient::new(MockKvClient::with_dispatch_hook(
+            |req: &dyn Any| {
+                assert!(req.is::<kvrpcpb::GetRequest>(), "only gets are sent");
+                Ok(Box::new(kvrpcpb::GetResponse {
+                    value: b"value".to_vec(),
+                    ..Default::default()
+                }) as Box<dyn Any>)
+            },
+        )));
+        let caller = crate::interceptor::with_rpc_interceptor(
+            &crate::trace::TraceContext::default(),
+            manager.create_mock_interceptor("CALLER"),
+        );
+        let mut txn = Transaction::new(
+            Timestamp::from_version(3),
+            pd_client.clone(),
+            TransactionOptions::new_optimistic().drop_check(CheckLevel::None),
+            Keyspace::Disable,
+        );
+        txn.set_caller_context(caller.clone());
+        assert_eq!(txn.get("a".to_owned()).await.unwrap(), Some(b"value".to_vec()));
+        assert_eq!(manager.exec_log(), ["CALLER"]);
+        manager.reset();
+
+        let mut txn = Transaction::new(
+            Timestamp::from_version(3),
+            pd_client,
+            TransactionOptions::new_optimistic().drop_check(CheckLevel::None),
+            Keyspace::Disable,
+        );
+        txn.set_caller_context(caller.clone());
+        txn.set_exec_details(Arc::new(crate::util::ExecDetails::default()));
+        let value = crate::trace::with_trace_context(caller, async { txn.get("b".to_owned()).await })
+            .await
+            .unwrap();
+        assert_eq!(value, Some(b"value".to_vec()));
+        assert_eq!(manager.exec_log(), ["CALLER"]);
     }
 
     #[tokio::test]
