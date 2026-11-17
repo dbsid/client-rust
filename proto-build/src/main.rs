@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ".kvrpcpb.BatchRollbackResponse.error",
         ".kvrpcpb.ScanLockResponse.error",
         ".kvrpcpb.ResolveLockResponse.error",
-        ".kvrpcpb.GcResponse.error",
+        ".kvrpcpb.GCResponse.error",
         ".kvrpcpb.KvPair.error",
         ".kvrpcpb.BufferBatchGetResponse.error",
     ] {
