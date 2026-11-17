@@ -30,7 +30,9 @@ pub struct GetResponse {
     /// A region error indicates that the request was sent to the wrong TiKV node
     /// (or other, similar errors).
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     /// A value could not be retrieved due to the state of the database for the requested key.
     #[prost(message, optional, boxed, tag = "2")]
     pub error: ::core::option::Option<::prost::alloc::boxed::Box<KeyError>>,
@@ -42,7 +44,9 @@ pub struct GetResponse {
     pub not_found: bool,
     /// Time and scan details when processing the request.
     #[prost(message, optional, boxed, tag = "6")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
     /// The commit timestamp of the key.
     /// If it is zero, it means the commit timestamp is unknown.
     #[prost(uint64, tag = "7")]
@@ -100,7 +104,9 @@ impl ::prost::Name for ScanRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScanResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     /// Each KvPair may contain a key error.
     #[prost(message, repeated, tag = "2")]
     pub pairs: ::prost::alloc::vec::Vec<KvPair>,
@@ -269,7 +275,9 @@ impl ::prost::Name for PrewriteRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PrewriteResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, repeated, tag = "2")]
     pub errors: ::prost::alloc::vec::Vec<KeyError>,
     /// 0 if the min_commit_ts is not ready or any other reason that async
@@ -284,7 +292,9 @@ pub struct PrewriteResponse {
     pub one_pc_commit_ts: u64,
     /// Execution details about the request processing.
     #[prost(message, optional, boxed, tag = "5")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
 }
 impl ::prost::Name for PrewriteResponse {
     const NAME: &'static str = "PrewriteResponse";
@@ -399,7 +409,9 @@ impl ::prost::Name for PessimisticLockKeyResult {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PessimisticLockResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, repeated, tag = "2")]
     pub errors: ::prost::alloc::vec::Vec<KeyError>,
     /// It carries the latest value and its commit ts if force in PessimisticLockRequest is true.
@@ -422,7 +434,9 @@ pub struct PessimisticLockResponse {
     pub not_founds: ::prost::alloc::vec::Vec<bool>,
     /// Execution details about the request processing.
     #[prost(message, optional, boxed, tag = "7")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
     /// Results of the request. Only used when `wake_up_mode` is `WakeUpModeForceLock`.
     #[prost(message, repeated, tag = "8")]
     pub results: ::prost::alloc::vec::Vec<PessimisticLockKeyResult>,
@@ -464,12 +478,16 @@ impl ::prost::Name for PessimisticRollbackRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PessimisticRollbackResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, repeated, tag = "2")]
     pub errors: ::prost::alloc::vec::Vec<KeyError>,
     /// Execution details about the request processing.
     #[prost(message, optional, boxed, tag = "3")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
 }
 impl ::prost::Name for PessimisticRollbackResponse {
     const NAME: &'static str = "PessimisticRollbackResponse";
@@ -519,7 +537,9 @@ impl ::prost::Name for TxnHeartBeatRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TxnHeartBeatResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, optional, boxed, tag = "2")]
     pub error: ::core::option::Option<::prost::alloc::boxed::Box<KeyError>>,
     /// The TTL actually set on the requested lock.
@@ -527,7 +547,9 @@ pub struct TxnHeartBeatResponse {
     pub lock_ttl: u64,
     /// Execution details about the request processing.
     #[prost(message, optional, boxed, tag = "4")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
 }
 impl ::prost::Name for TxnHeartBeatResponse {
     const NAME: &'static str = "TxnHeartBeatResponse";
@@ -601,7 +623,9 @@ impl ::prost::Name for CheckTxnStatusRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckTxnStatusResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, optional, boxed, tag = "2")]
     pub error: ::core::option::Option<::prost::alloc::boxed::Box<KeyError>>,
     /// Three kinds of transaction status:
@@ -619,7 +643,9 @@ pub struct CheckTxnStatusResponse {
     pub lock_info: ::core::option::Option<LockInfo>,
     /// Execution details about the request processing.
     #[prost(message, optional, boxed, tag = "7")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
 }
 impl ::prost::Name for CheckTxnStatusResponse {
     const NAME: &'static str = "CheckTxnStatusResponse";
@@ -659,7 +685,9 @@ impl ::prost::Name for CheckSecondaryLocksRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckSecondaryLocksResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, optional, boxed, tag = "2")]
     pub error: ::core::option::Option<::prost::alloc::boxed::Box<KeyError>>,
     /// For each key in `keys` in `CheckSecondaryLocks`, there will be a lock in
@@ -673,7 +701,9 @@ pub struct CheckSecondaryLocksResponse {
     pub commit_ts: u64,
     /// Execution details about the request processing.
     #[prost(message, optional, boxed, tag = "5")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
 }
 impl ::prost::Name for CheckSecondaryLocksResponse {
     const NAME: &'static str = "CheckSecondaryLocksResponse";
@@ -730,7 +760,9 @@ impl ::prost::Name for CommitRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CommitResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, optional, boxed, tag = "2")]
     pub error: ::core::option::Option<::prost::alloc::boxed::Box<KeyError>>,
     /// If the commit ts is derived from min_commit_ts, this field should be set.
@@ -738,7 +770,9 @@ pub struct CommitResponse {
     pub commit_version: u64,
     /// Execution details about the request processing.
     #[prost(message, optional, boxed, tag = "4")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
 }
 impl ::prost::Name for CommitResponse {
     const NAME: &'static str = "CommitResponse";
@@ -773,7 +807,9 @@ impl ::prost::Name for ImportRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ImportResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
 }
@@ -818,7 +854,9 @@ impl ::prost::Name for CleanupRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CleanupResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, optional, boxed, tag = "2")]
     pub error: ::core::option::Option<::prost::alloc::boxed::Box<KeyError>>,
     /// Set if the key is already committed.
@@ -863,12 +901,16 @@ impl ::prost::Name for BatchGetRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchGetResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, repeated, tag = "2")]
     pub pairs: ::prost::alloc::vec::Vec<KvPair>,
     /// Time and scan details when processing the request.
     #[prost(message, optional, boxed, tag = "4")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
     /// This KeyError exists when some key is locked but we cannot check locks of all keys.
     /// In this case, `pairs` should be empty and the client should redo batch get all the keys
     /// after resolving the lock.
@@ -916,12 +958,16 @@ impl ::prost::Name for BatchRollbackRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchRollbackResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, optional, boxed, tag = "2")]
     pub error: ::core::option::Option<::prost::alloc::boxed::Box<KeyError>>,
     /// Execution details about the request processing.
     #[prost(message, optional, boxed, tag = "3")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
 }
 impl ::prost::Name for BatchRollbackResponse {
     const NAME: &'static str = "BatchRollbackResponse";
@@ -967,7 +1013,9 @@ impl ::prost::Name for ScanLockRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScanLockResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, optional, boxed, tag = "2")]
     pub error: ::core::option::Option<::prost::alloc::boxed::Box<KeyError>>,
     /// Info on all locks found by the scan.
@@ -975,7 +1023,9 @@ pub struct ScanLockResponse {
     pub locks: ::prost::alloc::vec::Vec<LockInfo>,
     /// Execution details about the request processing.
     #[prost(message, optional, boxed, tag = "4")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
 }
 impl ::prost::Name for ScanLockResponse {
     const NAME: &'static str = "ScanLockResponse";
@@ -1026,12 +1076,16 @@ impl ::prost::Name for ResolveLockRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResolveLockResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, optional, boxed, tag = "2")]
     pub error: ::core::option::Option<::prost::alloc::boxed::Box<KeyError>>,
     /// Execution details about the request processing.
     #[prost(message, optional, boxed, tag = "3")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
 }
 impl ::prost::Name for ResolveLockResponse {
     const NAME: &'static str = "ResolveLockResponse";
@@ -1066,7 +1120,9 @@ impl ::prost::Name for GcRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GcResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, optional, boxed, tag = "2")]
     pub error: ::core::option::Option<::prost::alloc::boxed::Box<KeyError>>,
 }
@@ -1110,7 +1166,9 @@ impl ::prost::Name for DeleteRangeRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteRangeResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
 }
@@ -1158,7 +1216,9 @@ impl ::prost::Name for PrepareFlashbackToVersionRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PrepareFlashbackToVersionResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
 }
@@ -1208,7 +1268,9 @@ impl ::prost::Name for FlashbackToVersionRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FlashbackToVersionResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
 }
@@ -1246,7 +1308,9 @@ impl ::prost::Name for RawGetRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawGetResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
     #[prost(bytes = "vec", tag = "3")]
@@ -1288,7 +1352,9 @@ impl ::prost::Name for RawBatchGetRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawBatchGetResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, repeated, tag = "2")]
     pub pairs: ::prost::alloc::vec::Vec<KvPair>,
 }
@@ -1332,7 +1398,9 @@ impl ::prost::Name for RawPutRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawPutResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
 }
@@ -1380,7 +1448,9 @@ impl ::prost::Name for RawBatchPutRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawBatchPutResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
 }
@@ -1420,7 +1490,9 @@ impl ::prost::Name for RawDeleteRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawDeleteResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
 }
@@ -1460,7 +1532,9 @@ impl ::prost::Name for RawBatchDeleteRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawBatchDeleteResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
 }
@@ -1508,7 +1582,9 @@ impl ::prost::Name for RawScanRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawScanResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, repeated, tag = "2")]
     pub kvs: ::prost::alloc::vec::Vec<KvPair>,
 }
@@ -1548,7 +1624,9 @@ impl ::prost::Name for RawDeleteRangeRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawDeleteRangeResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
 }
@@ -1594,7 +1672,9 @@ impl ::prost::Name for RawBatchScanRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawBatchScanResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, repeated, tag = "2")]
     pub kvs: ::prost::alloc::vec::Vec<KvPair>,
 }
@@ -1632,7 +1712,9 @@ impl ::prost::Name for UnsafeDestroyRangeRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UnsafeDestroyRangeResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
 }
@@ -1822,7 +1904,9 @@ impl ::prost::Name for SplitRegionRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SplitRegionResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     /// set when there are only 2 result regions.
     #[deprecated]
     #[prost(message, optional, tag = "2")]
@@ -1875,7 +1959,9 @@ impl ::prost::Name for ReadIndexRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadIndexResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(uint64, tag = "2")]
     pub read_index: u64,
     /// If `locked` is set, this read request is blocked by a lock.
@@ -1915,7 +2001,9 @@ impl ::prost::Name for MvccGetByKeyRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MvccGetByKeyResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "3")]
@@ -1953,7 +2041,9 @@ impl ::prost::Name for MvccGetByStartTsRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MvccGetByStartTsResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
     #[prost(bytes = "vec", tag = "3")]
@@ -2050,11 +2140,7 @@ pub struct Context {
     /// Some information used for resource control.
     #[prost(message, optional, tag = "28")]
     pub resource_control_context: ::core::option::Option<ResourceControlContext>,
-    /// The declared origin of the request. TiDB server requests set this to TIDB.
-    /// This field is client-provided metadata; consumers should rely on it only when
-    /// the caller is authenticated/authorized by the transport or deployment boundary.
-    /// UNKNOWN means the origin is unset or not recognized by this protocol version.
-    /// Other components should add dedicated enum variants when they need origin-specific behavior.
+    /// Declared process/product origin; see RequestOrigin.
     #[prost(enumeration = "RequestOrigin", tag = "29")]
     pub request_origin: i32,
     /// The keyspace that the request is sent to.
@@ -2084,6 +2170,13 @@ pub struct Context {
     /// This field is set by client-go based on an extractor function provided by TiDB.
     #[prost(uint64, tag = "37")]
     pub trace_control_flags: u64,
+    /// Transaction protocol version declared for this request; see TxnProtocolVersion.
+    /// Missing or zero means legacy. Any nonzero value promises structured
+    /// IncompatibleRequest handling. BatchCommands declares this per inner request.
+    /// This is a compatibility declaration, not a binary version or authorization.
+    /// Keep uint32 so future version values remain representable.
+    #[prost(uint32, tag = "39")]
+    pub txn_protocol_version: u32,
     #[prost(oneof = "context::Keyspace", tags = "32, 38")]
     pub keyspace: ::core::option::Option<context::Keyspace>,
 }
@@ -2195,9 +2288,8 @@ pub struct LockInfo {
     /// When lock_type is SharedLock, this describes transactions holding the shared lock.
     /// Important: when lock_type is SharedLock, all shared locks must use shared_lock_infos;
     /// DO NOT read from the wrapper LockInfo.
-    /// TODO(slock): tidb should send requests with a feature flag to indicate whether it
-    /// supports shared locks, so that tikv can fail the requests from old tidb versions
-    /// when needed.
+    /// Before returning a shared lock wrapper, the server must check the caller's
+    /// txn_protocol_version and return IncompatibleRequest if support is insufficient.
     #[prost(message, repeated, tag = "12")]
     pub shared_lock_infos: ::prost::alloc::vec::Vec<LockInfo>,
     /// Reserved for file based transaction.
@@ -3442,7 +3534,9 @@ impl ::prost::Name for RawGetKeyTtlRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawGetKeyTtlResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
     #[prost(uint64, tag = "3")]
@@ -3495,7 +3589,9 @@ impl ::prost::Name for RawCasRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawCasResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
     #[prost(bool, tag = "3")]
@@ -3538,7 +3634,9 @@ impl ::prost::Name for GetLockWaitInfoRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetLockWaitInfoResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "3")]
@@ -3576,7 +3674,9 @@ impl ::prost::Name for GetLockWaitHistoryRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetLockWaitHistoryResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "3")]
@@ -3621,7 +3721,9 @@ impl ::prost::Name for RawCoprocessorRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawCoprocessorResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     /// Error message for cases like if no coprocessor with a matching name is found
     /// or on a version mismatch between plugin_api and the coprocessor.
     #[prost(string, tag = "2")]
@@ -3663,7 +3765,9 @@ impl ::prost::Name for RawChecksumRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawChecksumResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
     #[prost(uint64, tag = "3")]
@@ -3913,11 +4017,15 @@ impl ::prost::Name for FlushRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FlushResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, repeated, tag = "2")]
     pub errors: ::prost::alloc::vec::Vec<KeyError>,
     #[prost(message, optional, boxed, tag = "3")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
 }
 impl ::prost::Name for FlushResponse {
     const NAME: &'static str = "FlushResponse";
@@ -3955,14 +4063,18 @@ impl ::prost::Name for BufferBatchGetRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BufferBatchGetResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, optional, boxed, tag = "2")]
     pub error: ::core::option::Option<::prost::alloc::boxed::Box<KeyError>>,
     #[prost(message, repeated, tag = "3")]
     pub pairs: ::prost::alloc::vec::Vec<KvPair>,
     /// Time and scan details when processing the request.
     #[prost(message, optional, boxed, tag = "4")]
-    pub exec_details_v2: ::core::option::Option<::prost::alloc::boxed::Box<ExecDetailsV2>>,
+    pub exec_details_v2: ::core::option::Option<
+        ::prost::alloc::boxed::Box<ExecDetailsV2>,
+    >,
 }
 impl ::prost::Name for BufferBatchGetResponse {
     const NAME: &'static str = "BufferBatchGetResponse";
@@ -3999,7 +4111,9 @@ impl ::prost::Name for GetHealthFeedbackRequest {
 pub struct GetHealthFeedbackResponse {
     /// The error field is added for keeping consistent. This request won't meet any region error as it's store level rather than region level.
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, optional, tag = "2")]
     pub health_feedback: ::core::option::Option<HealthFeedback>,
 }
@@ -4030,6 +4144,12 @@ pub struct HealthFeedback {
     /// be replaced by `SlowTrend` in the future.
     #[prost(int32, tag = "3")]
     pub slow_score: i32,
+    /// The resource groups that the store currently blames for its own overload, if it reports them
+    /// at all. A store that does not support reporting them leaves this field unset, which is why
+    /// this is a message rather than a bare repeated field: an unset field and an empty list have
+    /// to mean different things to the client.
+    #[prost(message, optional, tag = "4")]
+    pub noisy_groups: ::core::option::Option<NoisyGroups>,
 }
 impl ::prost::Name for HealthFeedback {
     const NAME: &'static str = "HealthFeedback";
@@ -4039,6 +4159,27 @@ impl ::prost::Name for HealthFeedback {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/kvrpcpb.HealthFeedback".into()
+    }
+}
+/// NoisyGroups is the set of resource groups a store holds responsible for its own overload, as
+/// judged by that store alone at the time the feedback was generated.
+///
+/// An empty `names` is a positive statement that the store currently blames nobody, so a client can
+/// treat each message as replacing whatever it previously knew about that store.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NoisyGroups {
+    #[prost(string, repeated, tag = "1")]
+    pub names: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+impl ::prost::Name for NoisyGroups {
+    const NAME: &'static str = "NoisyGroups";
+    const PACKAGE: &'static str = "kvrpcpb";
+    fn full_name() -> ::prost::alloc::string::String {
+        "kvrpcpb.NoisyGroups".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/kvrpcpb.NoisyGroups".into()
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -4198,11 +4339,18 @@ impl CommitRole {
         }
     }
 }
+/// Client-provided process/product identity for auditing, not authentication or
+/// authorization. TiDB includes embedded BR; standalone BR uses RequestOriginBR.
+/// Audit unknown values without mapping them to a known origin or rejecting
+/// requests solely because of their origin in the initial rollout.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum RequestOrigin {
     Unknown = 0,
     TiDb = 1,
+    TiCdc = 2,
+    Br = 3,
+    TiFlash = 4,
 }
 impl RequestOrigin {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -4213,6 +4361,9 @@ impl RequestOrigin {
         match self {
             RequestOrigin::Unknown => "RequestOriginUnknown",
             RequestOrigin::TiDb => "RequestOriginTiDB",
+            RequestOrigin::TiCdc => "RequestOriginTiCDC",
+            RequestOrigin::Br => "RequestOriginBR",
+            RequestOrigin::TiFlash => "RequestOriginTiFlash",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -4220,6 +4371,9 @@ impl RequestOrigin {
         match value {
             "RequestOriginUnknown" => Some(Self::Unknown),
             "RequestOriginTiDB" => Some(Self::TiDb),
+            "RequestOriginTiCDC" => Some(Self::TiCdc),
+            "RequestOriginBR" => Some(Self::Br),
+            "RequestOriginTiFlash" => Some(Self::TiFlash),
             _ => None,
         }
     }
@@ -4304,6 +4458,47 @@ impl ApiVersion {
             "V1TTL" => Some(Self::V1ttl),
             "V2" => Some(Self::V2),
             "V3" => Some(Self::V3),
+            _ => None,
+        }
+    }
+}
+/// Transaction protocol version registry. Each version includes all earlier
+/// semantics. Keep values stable; new versions require joint review by TiKV,
+/// TiDB and relevant client owners. This registry sets neither client defaults
+/// nor the store's admission range.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TxnProtocolVersion {
+    /// No promise to handle IncompatibleRequest.
+    TxnVerLegacy = 0,
+    /// Handles IncompatibleRequest according to its error contract.
+    TxnVerSupportIncompatibleErrorHandling = 1,
+    /// Also supports shared wrapper parsing and expansion, nested lock information
+    /// preservation, and shared-lock pagination and resolve semantics.
+    TxnVerSupportSharedLock = 2,
+}
+impl TxnProtocolVersion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            TxnProtocolVersion::TxnVerLegacy => "TXN_VER_LEGACY",
+            TxnProtocolVersion::TxnVerSupportIncompatibleErrorHandling => {
+                "TXN_VER_SUPPORT_INCOMPATIBLE_ERROR_HANDLING"
+            }
+            TxnProtocolVersion::TxnVerSupportSharedLock => "TXN_VER_SUPPORT_SHARED_LOCK",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TXN_VER_LEGACY" => Some(Self::TxnVerLegacy),
+            "TXN_VER_SUPPORT_INCOMPATIBLE_ERROR_HANDLING" => {
+                Some(Self::TxnVerSupportIncompatibleErrorHandling)
+            }
+            "TXN_VER_SUPPORT_SHARED_LOCK" => Some(Self::TxnVerSupportSharedLock),
             _ => None,
         }
     }

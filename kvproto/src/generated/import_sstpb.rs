@@ -721,7 +721,9 @@ impl ::prost::Name for KvPair {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DuplicateDetectResponse {
     #[prost(message, optional, boxed, tag = "1")]
-    pub region_error: ::core::option::Option<::prost::alloc::boxed::Box<super::errorpb::Error>>,
+    pub region_error: ::core::option::Option<
+        ::prost::alloc::boxed::Box<super::errorpb::Error>,
+    >,
     #[prost(message, optional, tag = "2")]
     pub key_error: ::core::option::Option<Error>,
     /// The these keys will be in asc order (but commit time is in desc order),
