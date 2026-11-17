@@ -3660,7 +3660,13 @@ impl<PdC: PdClient> Transaction<PdC> {
         // lock and runs the rest of the call under it.
         let started = std::time::Instant::now();
         let result = if context.in_share_mode {
-            crate::trace::client_span("Shared Lock", self.lock_keys_checked(context, keys)).await
+            // Boxed: the shared-lock span's wrappers would otherwise hold the
+            // lock future several times in every lock call's future.
+            crate::trace::client_span(
+                "Shared Lock",
+                Box::pin(self.lock_keys_checked(context, keys)),
+            )
+            .await
         } else {
             self.lock_keys_checked(context, keys).await
         };
@@ -4204,7 +4210,9 @@ impl<PdC: PdClient> Transaction<PdC> {
         if let Some(statement) = self.statement_trace_context() {
             return self.commit_with_statement(statement).await;
         }
-        crate::trace::client_span("tikvTxn.Commit", self.commit_txn()).await
+        // Boxed: every tracing wrapper above holds its future more than
+        // once, so an inline commit future would multiply each layer's size.
+        crate::trace::client_span("tikvTxn.Commit", Box::pin(self.commit_txn())).await
     }
 
     /// [`Self::commit`] under its statement ctx. The future is built on the
@@ -7498,10 +7506,12 @@ impl<PdC: PdClient> Committer<PdC> {
             } else {
                 let chunks = self.txn_file_chunks.clone();
                 let cancellation = self.lock_resolver_context.background_cancellation();
-                if let Err(error) = crate::async_util::with_background_rpc_context(
+                // Boxed: the txn-file path is cold, and inline its future is
+                // most of every commit's future.
+                if let Err(error) = Box::pin(crate::async_util::with_background_rpc_context(
                     cancellation,
                     self.execute_txn_file_action(&chunks, TxnFileAction::Rollback),
-                )
+                ))
                 .await
                 {
                     log::error!(error:% = error; "txn file: rollback on error failed");
@@ -7595,7 +7605,8 @@ impl<PdC: PdClient> Committer<PdC> {
         if self.should_use_txn_file() {
             self.options.async_commit = false;
             self.options.try_one_pc = false;
-            return self.execute_txn_file(discard_values).await;
+            // Boxed for the same reason as the txn-file rollback above.
+            return Box::pin(self.execute_txn_file(discard_values)).await;
         }
         let stashed_assertion_error: Option<Error> =
             if let Some(assertion) = self.stashed_assertion.clone() {
@@ -11509,6 +11520,24 @@ mod tests {
             .unwrap()
             .join()
             .unwrap();
+    }
+
+    /// Every commit builds its future on the caller's stack and moves it to
+    /// the heap. Tracing wrappers that held the commit future several times
+    /// over made it hundreds of kilobytes.
+    #[test]
+    fn a_commit_future_stays_within_its_size_budget() {
+        let mut transaction = Transaction::new(
+            Timestamp::from_version(1),
+            Arc::new(MockPdClient::default()),
+            TransactionOptions::new_optimistic().drop_check(CheckLevel::None),
+            Keyspace::Disable,
+        );
+        let commit_size = std::mem::size_of_val(&transaction.commit());
+        assert!(
+            commit_size <= 4 * 1024,
+            "the commit future is {commit_size} bytes"
+        );
     }
 
     #[test]
