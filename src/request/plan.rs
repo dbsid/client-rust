@@ -2815,6 +2815,19 @@ where
     type Result = Vec<Result<P::Result>>;
 
     async fn execute(&self) -> Result<Self::Result> {
+        self.clone().execute_once().await
+    }
+}
+
+#[allow(private_bounds)]
+impl<P: Plan + Shardable, PdC: PdClient, R: RegionRetryState> RetryableMultiRegion<P, PdC, R>
+where
+    P::Result: HasKeyErrors + HasRegionError,
+{
+    /// Runs the request on the plan and backoff this owns. client-go sends
+    /// the request it built (`KVSnapshot.get`), so a plan run once needs no
+    /// copy of either; [`Plan::execute`] runs behind `&self` and copies them.
+    pub(crate) async fn execute_once(self) -> Result<Vec<Result<P::Result>>> {
         // The generic Rust plan caps multi-region concurrency. client-go's
         // snapshot BatchGet sends every initial region batch concurrently;
         // its optional worker pool applies only to callback retry work.
@@ -2824,17 +2837,16 @@ where
             self.concurrency.max(1)
         };
         let concurrency_permits = Arc::new(Semaphore::new(concurrency));
-        let backoff = self.backoff.clone();
         // Region location and every send below run with client-go's
         // `bo.GetCtx()`.
-        let slot = Self::bo_span_slot(&backoff, &self.inner).await;
+        let slot = Self::bo_span_slot(&self.backoff, &self.inner).await;
         let (result, backoff) = crate::trace::with_bo_span_slot(
             slot,
             Self::single_plan_handler(
-                self.pd_client.clone(),
-                self.inner.clone(),
-                backoff,
-                concurrency_permits.clone(),
+                self.pd_client,
+                self.inner,
+                self.backoff,
+                concurrency_permits,
                 self.preserve_region_results,
                 self.one_region,
                 self.snapshot_region_scope,
@@ -6626,9 +6638,9 @@ mod test {
     }
 
     /// A one-region plan that counts its copies.
-    struct OneShardCloneCountingPlan(Arc<AtomicUsize>);
+    struct RunOnceCountingPlan(Arc<AtomicUsize>);
 
-    impl Clone for OneShardCloneCountingPlan {
+    impl Clone for RunOnceCountingPlan {
         fn clone(&self) -> Self {
             self.0.fetch_add(1, Ordering::SeqCst);
             Self(Arc::clone(&self.0))
@@ -6636,7 +6648,7 @@ mod test {
     }
 
     #[async_trait]
-    impl Plan for OneShardCloneCountingPlan {
+    impl Plan for RunOnceCountingPlan {
         type Result = BatchGetResponse;
 
         async fn execute(&self) -> Result<Self::Result> {
@@ -6644,7 +6656,7 @@ mod test {
         }
     }
 
-    impl Shardable for OneShardCloneCountingPlan {
+    impl Shardable for RunOnceCountingPlan {
         type Shard = ();
 
         fn shards(
@@ -6661,13 +6673,14 @@ mod test {
         }
     }
 
-    /// client-go sends a one-region request (`KVSnapshot.get`) as the request
-    /// it built: applying the region's shard copies nothing.
+    /// client-go `KVSnapshot.get` sends the request it built: a plan run once
+    /// is not copied by its retry layer, which `Plan::execute` must do because
+    /// it runs behind `&self`.
     #[tokio::test]
-    async fn a_one_region_request_applies_its_shard_without_copying_the_plan() {
+    async fn a_plan_run_once_is_not_copied_by_its_retry_layer() {
         let clones = Arc::new(AtomicUsize::new(0));
-        let plan = RetryableMultiRegion {
-            inner: OneShardCloneCountingPlan(Arc::clone(&clones)),
+        let plan = || RetryableMultiRegion {
+            inner: RunOnceCountingPlan(Arc::clone(&clones)),
             pd_client: Arc::new(MockPdClient::default()),
             backoff: Backoff::no_backoff(),
             preserve_region_results: false,
@@ -6676,9 +6689,10 @@ mod test {
             snapshot_region_scope: None,
             snapshot_async_batch_get: false,
         };
-        assert_eq!(plan.execute().await.unwrap().len(), 1);
-        // The one copy is `execute`'s: the plan runs behind `&self`.
-        assert_eq!(clones.load(Ordering::SeqCst), 1);
+        assert_eq!(plan().execute_once().await.unwrap().len(), 1);
+        let run_once = clones.swap(0, Ordering::SeqCst);
+        assert_eq!(plan().execute().await.unwrap().len(), 1);
+        assert_eq!(clones.load(Ordering::SeqCst), run_once + 1);
     }
 
     /// A lock-free plan that counts how often it is copied.
