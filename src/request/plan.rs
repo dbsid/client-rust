@@ -1660,7 +1660,9 @@ where
                 backoff,
                 region_miss,
             } => {
-                crate::trace::with_bo_span_slot(
+                // Boxed: the re-split is the cold path, and inline it would
+                // triple the size of every request's future.
+                Box::pin(crate::trace::with_bo_span_slot(
                     slot,
                     Self::resplit(
                         pd_client,
@@ -1672,7 +1674,7 @@ where
                         one_region,
                         batch_region,
                     ),
-                )
+                ))
                 .await
             }
         };
@@ -1822,7 +1824,7 @@ where
                 };
             }
             Err(err) => {
-                return Self::handle_other_error(
+                return Box::pin(Self::handle_other_error(
                     pd_client,
                     plan,
                     region_ver_id,
@@ -1833,7 +1835,7 @@ where
                     preserve_region_results,
                     one_region,
                     err,
-                )
+                ))
                 .await;
             }
         };
@@ -1909,7 +1911,7 @@ where
                 .await;
             }
             Err(e) if is_grpc_error(&e) => {
-                return Self::handle_other_error(
+                return Box::pin(Self::handle_other_error(
                     pd_client,
                     plan,
                     region_store.region_with_leader.ver_id(),
@@ -1922,7 +1924,7 @@ where
                     preserve_region_results,
                     one_region,
                     e,
-                )
+                ))
                 .await;
             }
             Err(e) => {
@@ -2107,7 +2109,12 @@ where
                 // deadline exhaustion after its typed region-error branches.
                 Ok(RegionErrorRetry::Immediate)
             } else {
-                handle_region_error(pd_client.clone(), e.clone(), region_store.clone()).await
+                Box::pin(handle_region_error(
+                    pd_client.clone(),
+                    e.clone(),
+                    region_store.clone(),
+                ))
+                .await
             };
             let mut region_error_action = match region_error_action {
                 Ok(action) => action,
@@ -3469,8 +3476,10 @@ where
             let charges_detail = resolve_lock_detail_charged();
             let started = (self.snapshot_runtime_stats.is_some() || charges_detail).then(Instant::now);
             let lock_result = match &self.read_lock_context {
+                // Boxed: lock resolution is the cold path, and inline its
+                // future is most of every request's plan future.
                 Some(read_lock_context) => {
-                    resolve_locks_for_read_with_context_result(
+                    Box::pin(resolve_locks_for_read_with_context_result(
                         resolver_locks,
                         self.timestamp.clone(),
                         pd_client.clone(),
@@ -3478,11 +3487,11 @@ where
                         self.keyspace_name.as_deref(),
                         self.resolve_locks_context.clone(),
                         read_lock_context,
-                    )
+                    ))
                     .await
                 }
                 None => {
-                    resolve_locks_with_context_result(
+                    Box::pin(resolve_locks_with_context_result(
                         resolver_locks,
                         if clone.pessimistic_lock_wait.is_some() {
                             Timestamp::from_version(0)
@@ -3493,7 +3502,7 @@ where
                         self.keyspace,
                         self.keyspace_name.as_deref(),
                         self.resolve_locks_context.clone(),
-                    )
+                    ))
                     .await
                 }
             };
